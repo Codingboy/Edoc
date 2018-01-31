@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/../edoc/.idea/edoc.iml" filepath="$PROJECT_DIR$/../edoc/.idea/edoc.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../etalpmet/.idea/etalpmet.iml" filepath="$PROJECT_DIR$/../../etalpmet/.idea/etalpmet.iml" />
+    </modules>
+  </component>
+</project>
