@@ -2,7 +2,7 @@
 SPBox
 ==============
 
-.. automodule:: edoc
+.. automodule:: encoder
  
 .. autoclass:: SPBox
     :members:

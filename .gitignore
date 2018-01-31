@@ -1,0 +1,6 @@
+﻿edoc.exe
+setup.exe
+doc/*
+img/Thumbs.db
+*.log
+__pycache__/*

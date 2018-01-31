@@ -2,7 +2,7 @@
 SBox
 ==============
 
-.. automodule:: edoc
+.. automodule:: encoder
  
 .. autoclass:: SBox
     :members:

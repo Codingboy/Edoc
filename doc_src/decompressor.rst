@@ -2,7 +2,7 @@
 Decompressor
 ==============
 
-.. automodule:: edoc
+.. automodule:: compressor
  
 .. autoclass:: Decompressor
     :members:

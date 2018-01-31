@@ -2,7 +2,7 @@
 PBox
 ==============
 
-.. automodule:: edoc
+.. automodule:: encoder
  
 .. autoclass:: PBox
     :members:

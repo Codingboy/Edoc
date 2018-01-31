@@ -2,7 +2,7 @@
 ReadBuffer
 ==============
 
-.. automodule:: edoc
+.. automodule:: filebuffer
  
 .. autoclass:: ReadBuffer
     :members:

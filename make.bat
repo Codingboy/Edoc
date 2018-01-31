@@ -7,8 +7,8 @@ REM Command file for Sphinx documentation
 if "%SPHINXBUILD%" == "" (
 	set SPHINXBUILD=sphinx-build
 )
-set SOURCEDIR=doc
-set BUILDDIR=doc_src
+set SOURCEDIR=doc_src
+set BUILDDIR=doc
 set SPHINXPROJ=Edoc
 
 if "%1" == "" goto help

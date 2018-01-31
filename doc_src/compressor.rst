@@ -2,7 +2,7 @@
 Compressor
 ==============
 
-.. automodule:: edoc
+.. automodule:: compressor
  
 .. autoclass:: Compressor
     :members:

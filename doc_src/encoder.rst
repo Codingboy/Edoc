@@ -2,7 +2,7 @@
 Encoder
 ==============
 
-.. automodule:: edoc
+.. automodule:: encoder
  
 .. autoclass:: Encoder
     :members:

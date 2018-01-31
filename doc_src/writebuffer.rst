@@ -2,7 +2,7 @@
 WriteBuffer
 ==============
 
-.. automodule:: edoc
+.. automodule:: filebuffer
  
 .. autoclass:: WriteBuffer
     :members:

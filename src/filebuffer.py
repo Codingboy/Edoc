@@ -6,20 +6,20 @@ class ReadBuffer:
 	ReadBuffer buffers reading of files.
 
 	Attributes:
-		fIn (file): filereference
-		bufferSize (int): size of the buffer
-		buffer (bytearray): buffer
-		bufferPos (int): startposition of the buffer in the open file
-		pos (int): position of the cursor in the open file
-		filesize (int): size of the open file
+		fIn: filereference
+		bufferSize: size of the buffer
+		buffer: buffer
+		bufferPos: startposition of the buffer in the open file
+		pos: position of the cursor in the open file
+		filesize: size of the open file
 
 	Parameters:
-		infile (string): path to file
-		buffersize (int): size of the buffer
+		infile: path to file
+		buffersize: size of the buffer
 
 	| **Pre:**
-	|	os.path.isFile(inFile)
-	|	self.bufferSize > 0
+	|	os.path.isfile(inFile)
+	|	bufferSize > 0
 
 	| **Post:**
 	|	self.fIn is open
@@ -32,21 +32,20 @@ class ReadBuffer:
 	|	self.pos == 0
 	|	self.filesize == os.stat(inFile).st_size
 	"""
+	def __init__(self, infile: str, buffersize: int=1024):
+		self.fIn = open(infile, "rb")#TODO type
+		self.bufferSize: int = buffersize
+		self.buffer: bytearray = self.fIn.read(self.bufferSize)
+		self.bufferPos: int = 0
+		self.pos: int = 0
+		self.filesize: int = os.stat(infile).st_size
 
-	def __init__(self, infile, buffersize=1024):
-		self.fIn = open(infile, "rb")
-		self.bufferSize = buffersize
-		self.buffer = self.fIn.read(self.bufferSize)
-		self.bufferPos = 0
-		self.pos = 0
-		self.filesize = os.stat(infile).st_size
-
-	def seek(self, pos):
+	def seek(self, pos: int):
 		"""
 		Changes the cursorposition within a file.
 
 		Parameters:
-			pos (int): position
+			pos: position
 
 		| **Pre:**
 		|	pos >= 0
@@ -65,15 +64,15 @@ class ReadBuffer:
 		self.fIn.seek(pos)
 		self.buffer = self.fIn.read(self.bufferSize)
 
-	def read(self, size=1024):
+	def read(self, size: int=1024) -> bytearray:
 		"""
 		Reads data from file into buffer.
 
 		Parameters:
-			size (int): max number of bytes to be read
+			size: max number of bytes to be read
 
 		Returns:
-			bytearray: read bytes
+			read bytes
 
 		| **Pre:**
 		|	size > 0
@@ -131,17 +130,17 @@ class WriteBuffer:
 	WriteBuffer buffers writing of files.
 
 	Attributes:
-		fOut (file): filereference
-		bufferSize (int): size of the buffer
-		buffer (bytearray): buffer
-		size (int): actual size of the buffer
+		fOut: filereference
+		bufferSize: size of the buffer
+		buffer: buffer
+		size: actual size of the buffer
 
 	Parameters:
-		outfile (string): path to file
-		buffersize (int): size of the buffer
+		outfile: path to file
+		buffersize: size of the buffer
 
 	| **Pre:**
-	|	os.path.isFile(outFile)
+	|	os.path.isfile(outFile)
 	|	self.bufferSize > 0
 
 	| **Post:**
@@ -168,12 +167,12 @@ class WriteBuffer:
 				os.makedirs(folder)
 		self.fOut = open(outfile, "wb")
 
-	def write(self, data):
+	def write(self, data: bytearray):
 		"""
 		Writes data into buffer and file.
 
 		Parameters:
-			data (bytearray): data to be written
+			data: data to be written
 
 		| **Pre:**
 		|	self.fIn is open
@@ -211,12 +210,12 @@ class WriteBuffer:
 		self.fOut.write(self.buffer)
 		self.fOut.close()
 
-	def seek(self, pos):
+	def seek(self, pos: int):
 		"""
 		Changes the cursorposition within a file and flushes buffer.
 
 		Parameters:
-			pos (int): position
+			pos: position
 
 		| **Pre:**
 		|	pos >= 0

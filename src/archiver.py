@@ -1,11 +1,35 @@
 import os
 from src.filebuffer import ReadBuffer, WriteBuffer
+from typing import List
 
 
 class Archiver:
-	def __init__(self, folder, delete=False):
-		self.readBuffer = None
-		self.files = []
+	"""
+	Archiver converts files/folders to bytearrays.
+
+	Attributes:
+		readBuffer: readBuffer
+		files: list of files and folders that need to be processed
+		file: path to actual file
+		delete: status if the file should be deleted after it is processed
+		readSize: number of bytes read in one call
+
+	Parameters:
+		folder: path to file/folder
+		delete: status if the file should be deleted after it is processed
+
+	| **Pre:**
+	|	os.path.isfile(folder) or os.path.isdir(folder)
+
+	| **Post:**
+	|	self.readBuffer = None
+	|	self.file = ""
+	|	self.readSize = 1024
+	|	self.files contains files/folders in folder
+	"""
+	def __init__(self, folder: str, delete: bool=False):
+		self.readBuffer: ReadBuffer = None
+		self.files: List[str] = []
 		if os.path.isfile(folder):
 			self.files = [folder]
 		elif os.path.isdir(folder):
@@ -13,11 +37,23 @@ class Archiver:
 			for file in files:
 				file = folder+"/"+file
 				self.files.append(file)
-		self.file = ""
-		self.delete = delete
-		self.readSize = 1024
+		self.file: str = ""
+		self.delete: bool = delete
+		self.readSize: int = 1024
 
-	def read(self):
+	def read(self) -> bytearray:
+		"""
+		Reads data from file/folder.
+
+		Parameters:
+
+		Returns:
+			read bytes
+
+		| **Modifies:**
+		|	self.readBuffer
+		|	self.files
+		"""
 		ba = bytearray()
 		if self.readBuffer is None:
 			while True:
@@ -55,13 +91,47 @@ class Archiver:
 
 
 class Dearchiver:
-	def __init__(self, folder):
-		self.writeBuffer = None
-		self.filesize = 0
-		self.buffer = None
-		self.folder = folder
+	"""
+	Dearchiver converts bytearrays to files/folders.
 
-	def write(self, data):
+	Attributes:
+		writeBuffer: writeBuffer
+		folder: folder to extract to
+		filesize: remaining bytes that belong to the actual file
+		buffer: buffer for unprocessed data
+
+	Parameters:
+		folder: path to folder
+
+	| **Pre:**
+	|	os.path.isdir(folder)
+
+	| **Post:**
+	|	self.writeBuffer = None
+	|	self.buffer = None
+	|	self.filesize = 0
+	|	self.folder = folder
+	"""
+	def __init__(self, folder: str):
+		self.writeBuffer: WriteBuffer = None
+		self.filesize: int = 0
+		self.buffer: bytearray = None
+		self.folder: str = folder
+
+	def write(self, data: bytearray):
+		"""
+		Writes data to file/folder.
+
+		Parameters:
+			data: data to be processed
+
+		Returns:
+
+		| **Modifies:**
+		|	self.buffer
+		|	self.filesize
+		|	self.writeBuffer
+		"""
 		if self.buffer is not None:
 			data = self.buffer+data
 			self.buffer = None

@@ -9,16 +9,16 @@ Welcome to Edoc's documentation!
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-   
-   sbox
-   pbox
-   spbox
+
    readbuffer
    writebuffer
    archiver
    dearchiver
    compressor
    decompressor
+   sbox
+   pbox
+   spbox
    encoder
    decoder
    cli
