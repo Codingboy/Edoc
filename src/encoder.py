@@ -8,15 +8,63 @@ import unittest
 from typing import Dict, Tuple, List
 
 class Encoder:
-	def __init__(self):
-		pass
-	def encode(self, plain):
-		pass
+	def __init__(self, pw: str):
+		password = []
+		for c in pw:
+			password.append(ord(c))
+		self.spBox = SPBox(password)
+		self.buffer = None
+		self.seeded = False
+	def encode(self, plain: bytearray):
+		returnvalue = bytearray
+		if self.buffer is not None:
+			plain = self.buffer+plain
+			self.buffer = None
+		if (not self.seeded):
+			ba = self.spBox.getSeed()
+			returnvalue.extend(ba)
+			self.seeded = True
+		while len(plain) >= 256:
+			ba = bytearray()
+			for i in range(256):
+				ba.append(plain.pop(0))
+			encoded = self.spBox.encode(ba)
+			returnvalue.extend(encoded)
+		if len(plain) > 0:
+			self.buffer = plain
+		return returnvalue
+	def close(self):
+		while len(self.buffer) < 256:
+			self.buffer.append(randint(0, 255))
+		return self.encode(bytearray())
 
 class Decoder:
-	def __init__(self):
-		pass
-	def decode(self, encoded):
+	def __init__(self, pw: str, seed: bytearray=None):
+		password = []
+		for c in pw:
+			password.append(ord(c))
+		self.spBox = SPBox(password, seed)
+		self.buffer = None
+		self.seeded = False
+	def decode(self, encoded: bytearray):
+		returnvalue = bytearray
+		if self.buffer is not None:
+			encoded = self.buffer+encoded
+			self.buffer = None
+		while len(encoded) >= 256:
+			ba = bytearray()
+			for i in range(256):
+				ba.append(encoded.pop(0))
+			if (self.seeded):
+				decoded = self.spBox.decode(ba)
+				returnvalue.extend(decoded)
+			else:
+				self.spBox.setSeed(ba)
+				self.seeded = True
+		if len(encoded) > 0:
+			self.buffer = encoded
+		return returnvalue
+	def close(self):
 		pass
 
 class SBox:
@@ -330,7 +378,7 @@ class SPBox:
 			decoded[i] = decoded[i] ^ self.sBoxes[round].encodeMap[i] ^ seedAtI
 		return decoded
 
-	def encodeRounds(self, plain: List[int]) -> List[int]:  # TODO rename to encode
+	def encode(self, plain: List[int]) -> List[int]:
 		"""
 		Encodes a block of plain numbers.
 
@@ -365,7 +413,7 @@ class SPBox:
 				self.seed[i] = 1
 		return encoded
 
-	def decodeRounds(self, encoded: List[int]) -> List[int]:  # TODO rename to decode
+	def decode(self, encoded: List[int]) -> List[int]:
 		"""
 		Decodes a block of encoded numbers.
 
@@ -399,92 +447,6 @@ class SPBox:
 			self.seed[i] = decoded[i] ^ self.seed[i]
 			if (self.seed[i] == 0):
 				self.seed[i] = 1
-		return decoded
-
-	def encode(self, plain):  # TODO remove
-		"""
-		Encodes a block of plain numbers.
-
-		Parameters:
-			plain (list): block of plain numbers
-
-		Returns:
-			{"length":length, "message":encodedNumbers}: container with encoded numbers
-
-		| **Pre:**
-		|	len(plain) > 0
-		|	isinstance(plain[i], int)
-		|	plain[i] >= 0
-		|	plain[i] < 256
-
-		| **Post:**
-		|	isinstance(return["message"], list)
-		|	len(return["message"]) >= return["length"]
-		|	len(return["message"]) % 256 == 0
-		|	isinstance(return["message"][i], int)
-		|	return["message"][i] >= 0
-		|	return["message"][i] < 256
-
-		| **Modifies:**
-		|	self.seed[i]
-		"""
-		length = len(plain)
-		while (len(plain)%256 != 0):
-			plain.append(randint(0, 255))
-		encodedBytes = 0
-		encoded = []
-		while (encodedBytes < len(plain)):
-			plainPart = [0]*256
-			for i in range(256):
-				plainPart[i] = plain[encodedBytes]
-				encodedBytes += 1
-			encodedPart = self.encodeRounds(plainPart)
-			for i in range(256):
-				encoded.append(encodedPart[i])
-		return {"length": length, "message": encoded}
-
-	def decode(self, encodedJSON):  # TODO remove
-		"""
-		Decodes a container with encoded numbers.
-
-		Parameters:
-			encodedJSON ({"length":length, "message":encodedNumbers}): container with encoded numbers
-
-		Returns:
-			list: block of decoded numbers
-
-		| **Pre:**
-		|	isinstance(encodedJSON["message"], list)
-		|	len(encodedJSON["message"]) >= encodedJSON["length"]
-		|	len(encodedJSON["message"]) % 256 == 0
-		|	isinstance(encodedJSON["message"][i], int)
-		|	encodedJSON["message"][i] >= 0
-		|	encodedJSON["message"][i] < 256
-
-		| **Post:**
-		|	len(return) == encodedJSON["length"]
-		|	isinstance(return[i], int)
-		|	return[i] >= 0
-		|	return[i] < 256
-
-		| **Modifies:**
-		|	self.seed[i]
-		"""
-		length = encodedJSON["length"]
-		encoded = encodedJSON["message"]
-		decodedBytes = 0
-		decoded = []
-		while (decodedBytes < len(encoded)):
-			encodedPart = [0]*256
-			for i in range(256):
-				encodedPart[i] = encoded[decodedBytes]
-				decodedBytes += 1
-			decodedPart = self.decodeRounds(encodedPart)
-			for i in range(256):
-				if (len(decoded) < length):
-					decoded.append(decodedPart[i])
-				else:
-					break
 		return decoded
 
 	def getSeed(self):
@@ -526,271 +488,6 @@ class SPBox:
 
 # TODO change general parameter policy: all parameters may be edited by functions, no deepcopy needed
 #TODO change to bytearray
-class Edoc:
-	"""
-	"""
-
-	def __init__(self, pw):
-		"""
-		"""
-		asInt = []
-		for i in range(len(pw)):
-			asInt.append(ord(pw[i]))
-		pwIndex = 0
-		while (len(asInt) < 4096):
-			asInt.append(ord(pw[pwIndex%len(pw)]))
-			pwIndex += 1
-		self.spBox = SPBox(asInt)
-
-	def encodeString(self, plain):
-		"""
-		"""
-		plainMessage = []
-		for i in range(len(plain)):
-			if (ord(plain[i]) > 255):
-				plainMessage[i] = ord("?"[0])
-				logger.info(ord(plain[i])+" is no valid char")
-			else:
-				plainMessage[i] = ord(plain[i])
-		return self.spBox.encode(plainMessage)
-
-	def decodeString(self, encoded):
-		"""
-		"""
-		decoded = self.spBox.decode(encoded)
-		decodedStr = ""
-		for i in range(len(decoded)):
-			decodedStr += chr(decoded[i])
-		return decodedStr
-
-	def encode(self, plain):
-		"""
-		"""
-		seed = [0]*256
-		for i in range(256):
-			seed[i] = randint(1, 255)
-		self.spBox.setSeed(seed)
-		return {"seed": seed, "message": self.encodeString(plain)}
-
-	def decode(self, container):
-		"""
-		"""
-		seed = container["seed"]
-		encoded = container["message"]
-		self.spBox.setSeed(seed)
-		return self.decodeString(encoded)
-
-	def encodeFile(self, inFile, outFile):
-		"""
-		"""
-		compressor = Compressor()
-		compressor.compressFile(inFile, inFile+".compressed")
-		inFile = inFile+".compressed"
-		fOut = open(outFile, "wb")
-		fOut.write(chr(0).encode("utf-8"))
-		size = getSize(inFile)
-		self.encodeFileStream(inFile, fOut, size)
-		now = time.time()
-		logger.info(str(round(size/(now-start)))+" B/s")
-		fOut.close()
-		os.remove(inFile)
-
-	def encodeFileStream(self, inFile, fOut, targetProgress):  # TODO use buffers
-		"""
-		"""
-		global progress
-		seed = [1]*256
-		for i in range(256):
-			seed[i] = randint(1, 255)
-		self.spBox.setSeed(seed)
-		fIn = open(inFile, "rb")
-		ba = bytearray()
-		fileSize = os.stat(inFile).st_size
-		for i in range(8):
-			ba.append((fileSize>>(8*(8-1-i))) & 0xff)
-		fOut.write(ba)
-		ba = bytearray()
-		for i in range(256):
-			ba.append(self.spBox.seed[i])
-		fOut.write(ba)
-		readSize = 0
-		while readSize < fileSize:
-			now = time.time()
-			end = 0
-			if (progress != 0):
-				end = targetProgress*(float(now-start)/progress)
-				end -= (now-start)
-			h = math.floor(end/3600)
-			m = math.floor((end-h*3600)/60)
-			s = math.floor(end-h*3600-m*60)
-			h = str(h)
-			m = str(m)
-			s = str(s)
-			if (len(h) == 1):
-				h = "0"+h
-			if (len(m) == 1):
-				m = "0"+m
-			if (len(s) == 1):
-				s = "0"+s
-			end = round(end*10)/10
-			print(str(round(progress*1000/targetProgress)/10)+"% "+h+":"+m+":"+s, end="\r")
-			n = min(fileSize-readSize, 256)
-			progress += n
-			data = fIn.read(n)
-			asInt = []
-			for c in data:
-				asInt.append(c)
-			output = bytearray()
-			encoded = self.spBox.encode(asInt)
-			for i in range(256):
-				output.append(encoded["message"][i])
-			fOut.write(output)
-			readSize += n
-		fIn.close()
-
-	def decodeFile(self, inFile, outFile):
-		"""
-		"""
-		outFile = outFile+".compressed"
-		fIn = open(inFile, "rb")
-		ord(fIn.read(1).decode("utf-8")[0])  # 0
-		size = getSize(inFile)
-		self.decodeFileStream(fIn, outFile, size)
-		now = time.time()
-		logger.info(str(round(size/(now-start)))+" B/s")
-		fIn.close()
-		os.remove(inFile)
-		compressor = Compressor()
-		compressor.decompressFile(outFile, outFile[:-11])
-
-	def decodeFileStream(self, fIn, outFile, targetProgress):  # TODO use buffers
-		"""
-		"""
-		global progress
-		fOut = open(outFile, "wb")
-		fileSize = 0
-		for i in range(8):
-			fileSize += (fIn.read(1)[0])<<(8*(8-1-i))
-		seed = []
-		b = fIn.read(256)
-		for c in b:
-			seed.append(c)
-		self.spBox.setSeed(seed)
-		readSize = 0
-		while readSize < fileSize:
-			now = time.time()
-			end = 0
-			if (progress != 0):
-				end = targetProgress*(float(now-start)/progress)
-				end -= (now-start)
-			h = math.floor(end/3600)
-			m = math.floor((end-h*3600)/60)
-			s = math.floor(end-h*3600-m*60)
-			h = str(h)
-			m = str(m)
-			s = str(s)
-			if (len(h) == 1):
-				h = "0"+h
-			if (len(m) == 1):
-				m = "0"+m
-			if (len(s) == 1):
-				s = "0"+s
-			end = round(end*10)/10
-			print(str(round(progress*1000/targetProgress)/10)+"% "+h+":"+m+":"+s, end="\r")
-			length = min(fileSize-readSize, 256)
-			n = 256
-			progress += n
-			data = fIn.read(n)
-			message = []
-			for c in data:
-				message.append(c)
-			encoded = {"length": length, "message": message}
-			decoded = self.spBox.decode(encoded)
-			output = bytearray()
-			for c in decoded:
-				output.append(c)
-			fOut.write(output)
-			readSize += n
-		fOut.close()
-
-	def encodeFolder(self, folder, outFile):
-		"""
-		"""
-		fOut = open(outFile, "wb")
-		fOut.write(chr(1).encode("utf-8"))
-		size = getSize(folder)
-		self.encodeFolderStream(folder, fOut, folder+"/", size)
-		now = time.time()
-		logger.info(str(round(size/(now-start)))+" B/s")
-		fOut.close()
-		shutil.rmtree(folder)
-
-	def encodeFolderStream(self, folder, fOut, root, targetProgress):
-		"""
-		"""
-		files = os.listdir(folder)
-		for file in files:
-			file = folder+"/"+file
-			if (os.path.isfile(file)):
-				compressor = Compressor()
-				compressor.compressFile(file, file+".compressed")
-				file = file+".compressed"
-				fileName = file[len(root):]
-				ba = bytearray()
-				ba.append(len(fileName))
-				for c in fileName:
-					ba.append(ord(c))
-				fOut.write(ba)
-				self.encodeFileStream(file, fOut, targetProgress)
-			elif (os.path.isdir(file)):
-				self.encodeFolderStream(file, fOut, root, targetProgress)
-
-	def decodeFolder(self, inFile):
-		"""
-		"""
-		fIn = open(inFile, "rb")
-		folder = inFile[0:inFile.rfind(".")]+"/"
-		fIn.read(1)[0]  # 1
-		size = getSize(inFile)
-		self.decodeFolderStream(fIn, folder, size)
-		now = time.time()
-		logger.info(str(round(size/(now-start)))+" B/s")
-		fIn.close()
-		os.remove(inFile)
-
-	def decodeFolderStream(self, fIn, root, targetProgress):
-		"""
-		"""
-		while True:
-			lengthStr = fIn.read(1)
-			if (len(lengthStr) == 0):
-				break
-			length = lengthStr[0]
-			data = fIn.read(length)
-			outFile = root
-			for c in data:
-				outFile += chr(c)
-			folder = outFile[0:outFile.rfind("/")]
-			if (not os.path.exists(folder)):
-				os.makedirs(folder)
-			self.decodeFileStream(fIn, outFile, targetProgress)
-			compressor = Compressor()
-			compressor.decompressFile(outFile, outFile[:-11])
-
-def getSize(folder):
-	"""
-	"""
-	if (os.path.isfile(folder)):
-		return os.stat(folder).st_size
-	size = 0
-	files = os.listdir(folder)
-	for file in files:
-		file = folder+"/"+file
-		if (os.path.isfile(file)):
-			size += getSize(file)
-		elif (os.path.isdir(file)):
-			size += getSize(file)
-	return size
 
 class SBoxUnitTest(unittest.TestCase):
 	def setUp(self):
@@ -880,34 +577,4 @@ class SPBoxUnitTest(unittest.TestCase):
 				decodedMatches += 1
 		self.assertTrue(decodedMatches == length)  # TODO encodeMatches
 		self.assertTrue(seedMatches < 256/10)
-
 # TODO encode 2nd batch#plain is edited
-
-class EdocUnitTest(unittest.TestCase):
-	def setUp(self):
-		self.pw = ""
-		for i in range(randint(1, 4096)):
-			self.pw += chr(randint(0, 255))
-		self.edoc = Edoc(self.pw)
-
-	def tearDown(self):
-		self.pw = None
-		self.edoc = None
-
-	def test_simple(self):
-		plain = ""
-		for i in range(randint(1, 256*4*16)):
-			plain += chr(randint(0, 255))
-		encoded1 = self.edoc.encode(plain)
-		encoded2 = self.edoc.encode(plain)
-		decoded1 = self.edoc.decode(encoded1)
-		decoded2 = self.edoc.decode(encoded2)
-		decodedMatches = 0
-		for i in range(len(plain)):
-			if (plain[i] == decoded1[i]):
-				decodedMatches += 1
-			if (plain[i] == decoded2[i]):
-				decodedMatches += 1
-		self.assertTrue(decodedMatches == 2*len(plain))  # TODO encodeMatches
-		self.assertTrue(len(decoded1) == len(plain))
-		self.assertTrue(len(decoded2) == len(plain))

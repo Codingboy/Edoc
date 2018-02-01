@@ -3,11 +3,47 @@ import logging
 import sys
 import time
 import unittest
+import os
+import math
 
-from src.archiver import Archiver, Dearchiver
-from src.compressor import Compressor, Decompressor
-from src.encoder import Encoder, Decoder
-from src.filebuffer import WriteBuffer, ReadBuffer
+from archiver import Archiver, Dearchiver
+from compressor import Compressor, Decompressor
+from encoder import Encoder, Decoder
+from filebuffer import WriteBuffer, ReadBuffer
+
+
+def printProgress():
+	now = time.time()
+	end = 0
+	if (progress != 0):
+		end = targetprogress*(float(now-start)/progress)
+		end -= (now-start)
+	h = math.floor(end/3600)
+	m = math.floor((end-h*3600)/60)
+	s = math.floor(end-h*3600-m*60)
+	h = str(h)
+	m = str(m)
+	s = str(s)
+	if (len(h) == 1):
+		h = "0"+h
+	if (len(m) == 1):
+		m = "0"+m
+	if (len(s) == 1):
+		s = "0"+s
+	print(str(round(progress*1000/targetprogress)/10)+"% "+h+":"+m+":"+s, end="\r")
+
+def getSize(folder):
+	if (os.path.isfile(folder)):
+		return os.stat(folder).st_size
+	size = 0
+	files = os.listdir(folder)
+	for file in files:
+		file = folder+"/"+file
+		if (os.path.isfile(file)):
+			size += getSize(file)
+		elif (os.path.isdir(file)):
+			size += getSize(file)
+	return size
 
 if __name__ == "__main__":
 	PROJECTNAME = "edoc"
@@ -49,6 +85,7 @@ if __name__ == "__main__":
 	testMode = args["test"]
 	root = None
 	progress = 0
+	targetprogress = getSize(file)
 	start = 0
 	pr = None
 	if testMode:
@@ -66,15 +103,19 @@ if __name__ == "__main__":
 			if profiling:
 				pr = cProfile.Profile()
 				pr.enable()
+			start = time.time()
 			if encodeMode:
 				archiver = Archiver(file, True)
 				compressor = Compressor()
 				encoder = Encoder(password)
 				writebuffer = WriteBuffer(file+".edoc")
 				while True:
+					printProgress()
 					breakcondition = False
 					data = archiver.read()
-					if len(breakcondition) == 0:
+					datalen = len(data)
+					progress += datalen
+					if datalen == 0:
 						breakcondition = True
 					data = compressor.compress(data)
 					data = encoder.encode(data)
@@ -93,9 +134,12 @@ if __name__ == "__main__":
 				decompressor = Decompressor()
 				dearchiver = Dearchiver(file[:-5])
 				while True:
+					printProgress()
 					breakcondition = False
 					data = readbuffer.read()
-					if len(breakcondition) == 0:
+					datalen = len(data)
+					progress += datalen
+					if datalen == 0:
 						breakcondition = True
 					data = decoder.decode(data)
 					data = decompressor.decompress(data)
@@ -108,6 +152,7 @@ if __name__ == "__main__":
 				data1 = decompressor.close()
 				dearchiver.write(data)
 				dearchiver.write(data1)
+			printProgress()
 			if profiling:
 				pr.disable()
 				s = io.StringIO()

@@ -1,11 +1,9 @@
 import unittest
-from random import randint
 from typing import Dict,Tuple,List
 import shutil
-
+from filebuffer import ReadBuffer, WriteBuffer
 import os
 
-from src.filebuffer import ReadBuffer, WriteBuffer
 
 class Compressor:
 	"""

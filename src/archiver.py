@@ -1,5 +1,5 @@
 import os
-from src.filebuffer import ReadBuffer, WriteBuffer
+from filebuffer import ReadBuffer, WriteBuffer
 from typing import List
 import unittest
 import shutil
