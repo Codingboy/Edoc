@@ -2,6 +2,7 @@ import os
 from src.filebuffer import ReadBuffer, WriteBuffer
 from typing import List
 import unittest
+import shutil
 
 
 class Archiver:
@@ -14,6 +15,7 @@ class Archiver:
 		file: path to actual file
 		delete: status if the file should be deleted after it is processed
 		readSize: number of bytes read in one call
+		folder: folder
 
 	Parameters:
 		folder: path to file/folder
@@ -31,12 +33,21 @@ class Archiver:
 	def __init__(self, folder: str, delete: bool=False):
 		self.readBuffer: ReadBuffer = None
 		self.files: List[str] = []
+		self.folder:str = ""
+		index = folder.rfind("/")
+		if index != -1:
+			index += 1
+			self.folder = folder[:index]
 		if os.path.isfile(folder):
-			self.files = [folder]
+			if index != -1:
+				self.files = [folder[index:]]
+			else:
+				self.files = [folder]
 		elif os.path.isdir(folder):
 			files = os.listdir(folder)
 			for file in files:
 				file = folder+"/"+file
+				file = file[len(self.folder):]
 				self.files.append(file)
 		self.file: str = ""
 		self.delete: bool = delete
@@ -62,6 +73,7 @@ class Archiver:
 					break
 				else:
 					file = self.files.pop(0)
+					file = self.folder+file
 					if os.path.isdir(file):
 						folder = file
 						files = os.listdir(folder)
@@ -71,12 +83,13 @@ class Archiver:
 					elif os.path.isfile(file):
 						self.readBuffer = ReadBuffer(file)
 						self.file = file
+						file = file[len(self.folder):]
 						length = len(file)
 						ba.append(length >> 8)
 						ba.append(length & 255)
 						for c in file:
 							ba.append(ord(c))
-						filesize = os.stat(file).st_size
+						filesize = os.stat(self.file).st_size
 						for i in range(8):
 							ba.append((filesize >> (8*(8-1-i))) & 255)
 						break
@@ -149,12 +162,12 @@ class Dearchiver:
 						for i in range(8):
 							self.filesize += (data[2+length+i]) << (8*(8-1-i))
 						self.writeBuffer = WriteBuffer(self.folder+"/"+file)
-						length = min(datalength-(2+length+8), self.filesize)
+						maxlength = min(datalength-(2+length+8), self.filesize)
 						ba = bytearray()
-						for i in range(length):
+						for i in range(maxlength):
 							ba.append(data[2+length+8+i])
 						self.writeBuffer.write(ba)
-						self.filesize -= length
+						self.filesize -= maxlength
 					else:
 						self.buffer = data
 				else:
@@ -182,7 +195,7 @@ class ArchiverUnitTest(unittest.TestCase):
 
 	def test_file(self):
 		archivefile = "../test.archive"
-		dstfile = "../test/test.archive"
+		dstfile = "../test/test.txt"
 		archiver = Archiver(self.srcfile)
 		writebuffer = WriteBuffer(archivefile)
 		while True:
@@ -195,7 +208,7 @@ class ArchiverUnitTest(unittest.TestCase):
 		filesize1 = os.stat(self.srcfile).st_size
 		filesize2 = os.stat(archivefile).st_size
 		self.assertTrue(filesize1 < filesize2)
-		dearchiver = Dearchiver("../test/")
+		dearchiver = Dearchiver("../test")
 		readbuffer = ReadBuffer(archivefile)
 		while True:
 			ba = readbuffer.read()
@@ -203,7 +216,7 @@ class ArchiverUnitTest(unittest.TestCase):
 				break
 			dearchiver.write(ba)
 		readbuffer.close()
-		self.assertTrue(os.path.isfile(archivefile))
+		self.assertTrue(os.path.isfile(dstfile))
 		filesize3 = os.stat(dstfile).st_size
 		self.assertTrue(filesize1 == filesize3)
 		fin1 = open(self.srcfile, "rb")
@@ -215,3 +228,54 @@ class ArchiverUnitTest(unittest.TestCase):
 		fin1.close()
 		fin2.close()
 		os.remove(dstfile)
+
+	def test_folder(self):
+		testfolder = "../test"
+		shutil.copy(self.srcfile, "../test/folder/test1.txt")
+		shutil.copy(self.srcfile, "../test/folder/test2.txt")
+		archiver = Archiver("../test/folder")
+		archivefile = "../test/folder.archive"
+		dstfile1 = "../test/output/test1.txt"
+		dstfile2 = "../test/output/test2.txt"
+		writebuffer = WriteBuffer(archivefile)
+		while True:
+			ba = archiver.read()
+			if len(ba) == 0:
+				break
+			writebuffer.write(ba)
+		writebuffer.close()
+		self.assertTrue(os.path.isfile(archivefile))
+		filesize1 = os.stat(self.srcfile).st_size
+		filesize2 = os.stat(archivefile).st_size
+		self.assertTrue(filesize1*2 < filesize2)
+		dearchiver = Dearchiver("../test/output")
+		readbuffer = ReadBuffer(archivefile)
+		while True:
+			ba = readbuffer.read()
+			if len(ba) == 0:
+				break
+			dearchiver.write(ba)
+		readbuffer.close()
+		self.assertTrue(os.path.isfile(dstfile1))
+		filesize3 = os.stat(dstfile1).st_size
+		self.assertTrue(filesize1 == filesize3)
+		fin1 = open(self.srcfile, "rb")
+		fin2 = open(dstfile1, "rb")
+		ba1 = fin1.read(filesize1)
+		ba2 = fin2.read(filesize3)
+		for i in range(filesize1):
+			self.assertTrue(ba1[i] == ba2[i])
+		fin1.close()
+		fin2.close()
+		self.assertTrue(os.path.isfile(dstfile2))
+		filesize3 = os.stat(dstfile2).st_size
+		self.assertTrue(filesize1 == filesize3)
+		fin1 = open(self.srcfile, "rb")
+		fin2 = open(dstfile2, "rb")
+		ba1 = fin1.read(filesize1)
+		ba2 = fin2.read(filesize3)
+		for i in range(filesize1):
+			self.assertTrue(ba1[i] == ba2[i])
+		fin1.close()
+		fin2.close()
+		os.remove(testfolder)
