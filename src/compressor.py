@@ -1,5 +1,11 @@
+import unittest
+from random import randint
 from typing import Dict,Tuple,List
+import shutil
 
+import os
+
+from src.filebuffer import ReadBuffer, WriteBuffer
 
 class Compressor:
 	"""
@@ -187,3 +193,59 @@ class Decompressor:
 		|	self.buffer
 		"""
 		return self.decompress(bytearray())#TODO optimize
+
+class FileBufferUnitTest(unittest.TestCase):
+	def setUp(self):
+		self.srcfile = "../test.txt"
+
+	def tearDown(self):
+		pass
+
+	def test_compress(self):
+		testfolder = "../test"
+		compressedfile = "../test/test.compressed"
+		dstfile = "../test/test.txt"
+		readbuffer = ReadBuffer(self.srcfile)
+		compressor = Compressor()
+		writebuffer = WriteBuffer(compressedfile)
+		while True:
+			ba = readbuffer.read(1023)
+			if len(ba) == 0:
+				break
+			ba = compressor.compress(ba)
+			writebuffer.write(ba)
+		readbuffer.close()
+		ba = compressor.close()
+		writebuffer.write(ba)
+		writebuffer.close()
+		self.assertTrue(os.path.isfile(compressedfile))
+		filesize1 = os.stat(self.srcfile).st_size
+		filesize2 = os.stat(compressedfile).st_size
+		self.assertTrue(filesize1 > filesize2)
+
+		readbuffer = ReadBuffer(compressedfile)
+		decompressor = Decompressor()
+		writebuffer = WriteBuffer(dstfile)
+		while True:
+			ba = readbuffer.read(1023)
+			if len(ba) == 0:
+				break
+			ba = decompressor.decompress(ba)
+			writebuffer.write(ba)
+		readbuffer.close()
+		ba = decompressor.close()
+		writebuffer.write(ba)
+		writebuffer.close()
+		self.assertTrue(os.path.isfile(dstfile))
+		filesize3 = os.stat(dstfile).st_size
+		self.assertTrue(filesize1 == filesize3)
+
+		fin1 = open(self.srcfile, "rb")
+		fin2 = open(dstfile, "rb")
+		ba1 = fin1.read(filesize1)
+		ba2 = fin2.read(filesize3)
+		for i in range(filesize1):
+			self.assertTrue(ba1[i] == ba2[i])
+		fin1.close()
+		fin2.close()
+		shutil.rmtree(testfolder)

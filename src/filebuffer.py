@@ -1,6 +1,7 @@
 import os
 import unittest
 from random import randint
+import shutil
 
 
 class ReadBuffer:
@@ -261,7 +262,8 @@ class FileBufferUnitTest(unittest.TestCase):
 		readbuffer.close()
 
 	def test_copy(self):
-		dstfile = "../test.copy.txt"
+		testfolder = "../test"
+		dstfile = "../test/test.copy.txt"
 		readbuffer = ReadBuffer(self.srcfile)
 		writebuffer = WriteBuffer(dstfile)
 		while True:
@@ -283,4 +285,4 @@ class FileBufferUnitTest(unittest.TestCase):
 			self.assertTrue(ba1[i] == ba2[i])
 		fin1.close()
 		fin2.close()
-		os.remove(dstfile)
+		shutil.rmtree(testfolder)

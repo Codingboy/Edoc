@@ -188,15 +188,17 @@ class Dearchiver:
 
 class ArchiverUnitTest(unittest.TestCase):
 	def setUp(self):
-		self.srcfile = "../test.txt"
+		pass
 
 	def tearDown(self):
 		pass
 
 	def test_file(self):
-		archivefile = "../test.archive"
-		dstfile = "../test/test.txt"
-		archiver = Archiver(self.srcfile)
+		testfolder = "../test"
+		srcfile = "../test.txt"
+		archivefile = testfolder+"/test.archive"
+		dstfile = testfolder+"/test.txt"
+		archiver = Archiver(srcfile)
 		writebuffer = WriteBuffer(archivefile)
 		while True:
 			ba = archiver.read()
@@ -205,10 +207,10 @@ class ArchiverUnitTest(unittest.TestCase):
 			writebuffer.write(ba)
 		writebuffer.close()
 		self.assertTrue(os.path.isfile(archivefile))
-		filesize1 = os.stat(self.srcfile).st_size
+		filesize1 = os.stat(srcfile).st_size
 		filesize2 = os.stat(archivefile).st_size
 		self.assertTrue(filesize1 < filesize2)
-		dearchiver = Dearchiver("../test")
+		dearchiver = Dearchiver(testfolder)
 		readbuffer = ReadBuffer(archivefile)
 		while True:
 			ba = readbuffer.read()
@@ -219,7 +221,7 @@ class ArchiverUnitTest(unittest.TestCase):
 		self.assertTrue(os.path.isfile(dstfile))
 		filesize3 = os.stat(dstfile).st_size
 		self.assertTrue(filesize1 == filesize3)
-		fin1 = open(self.srcfile, "rb")
+		fin1 = open(srcfile, "rb")
 		fin2 = open(dstfile, "rb")
 		ba1 = fin1.read(filesize1)
 		ba2 = fin2.read(filesize3)
@@ -227,16 +229,18 @@ class ArchiverUnitTest(unittest.TestCase):
 			self.assertTrue(ba1[i] == ba2[i])
 		fin1.close()
 		fin2.close()
-		os.remove(dstfile)
+		shutil.rmtree(testfolder)
 
 	def test_folder(self):
 		testfolder = "../test"
-		shutil.copy(self.srcfile, "../test/folder/test1.txt")
-		shutil.copy(self.srcfile, "../test/folder/test2.txt")
+		srcfile = "../test.txt"
+		os.makedirs("../test/folder")
+		shutil.copy(srcfile, "../test/folder/test1.txt")
+		shutil.copy(srcfile, "../test/folder/test2.txt")
 		archiver = Archiver("../test/folder")
 		archivefile = "../test/folder.archive"
-		dstfile1 = "../test/output/test1.txt"
-		dstfile2 = "../test/output/test2.txt"
+		dstfile1 = "../test/output/folder/test1.txt"
+		dstfile2 = "../test/output/folder/test2.txt"
 		writebuffer = WriteBuffer(archivefile)
 		while True:
 			ba = archiver.read()
@@ -245,7 +249,7 @@ class ArchiverUnitTest(unittest.TestCase):
 			writebuffer.write(ba)
 		writebuffer.close()
 		self.assertTrue(os.path.isfile(archivefile))
-		filesize1 = os.stat(self.srcfile).st_size
+		filesize1 = os.stat(srcfile).st_size
 		filesize2 = os.stat(archivefile).st_size
 		self.assertTrue(filesize1*2 < filesize2)
 		dearchiver = Dearchiver("../test/output")
@@ -259,7 +263,7 @@ class ArchiverUnitTest(unittest.TestCase):
 		self.assertTrue(os.path.isfile(dstfile1))
 		filesize3 = os.stat(dstfile1).st_size
 		self.assertTrue(filesize1 == filesize3)
-		fin1 = open(self.srcfile, "rb")
+		fin1 = open(srcfile, "rb")
 		fin2 = open(dstfile1, "rb")
 		ba1 = fin1.read(filesize1)
 		ba2 = fin2.read(filesize3)
@@ -270,7 +274,7 @@ class ArchiverUnitTest(unittest.TestCase):
 		self.assertTrue(os.path.isfile(dstfile2))
 		filesize3 = os.stat(dstfile2).st_size
 		self.assertTrue(filesize1 == filesize3)
-		fin1 = open(self.srcfile, "rb")
+		fin1 = open(srcfile, "rb")
 		fin2 = open(dstfile2, "rb")
 		ba1 = fin1.read(filesize1)
 		ba2 = fin2.read(filesize3)
@@ -278,4 +282,4 @@ class ArchiverUnitTest(unittest.TestCase):
 			self.assertTrue(ba1[i] == ba2[i])
 		fin1.close()
 		fin2.close()
-		os.remove(testfolder)
+		shutil.rmtree(testfolder)
