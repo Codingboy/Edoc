@@ -525,6 +525,7 @@ class SPBox:
 			self.seed[i] = seed[i]
 
 # TODO change general parameter policy: all parameters may be edited by functions, no deepcopy needed
+#TODO change to bytearray
 class Edoc:
 	"""
 	"""

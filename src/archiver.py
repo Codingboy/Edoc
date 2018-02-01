@@ -1,6 +1,7 @@
 import os
 from src.filebuffer import ReadBuffer, WriteBuffer
 from typing import List
+import unittest
 
 
 class Archiver:
@@ -171,3 +172,46 @@ class Dearchiver:
 				self.writeBuffer.close()
 				self.writeBuffer = None
 				self.write(data[length:])
+
+class ArchiverUnitTest(unittest.TestCase):
+	def setUp(self):
+		self.srcfile = "../test.txt"
+
+	def tearDown(self):
+		pass
+
+	def test_file(self):
+		archivefile = "../test.archive"
+		dstfile = "../test/test.archive"
+		archiver = Archiver(self.srcfile)
+		writebuffer = WriteBuffer(archivefile)
+		while True:
+			ba = archiver.read()
+			if len(ba) == 0:
+				break
+			writebuffer.write(ba)
+		writebuffer.close()
+		self.assertTrue(os.path.isfile(archivefile))
+		filesize1 = os.stat(self.srcfile).st_size
+		filesize2 = os.stat(archivefile).st_size
+		self.assertTrue(filesize1 < filesize2)
+		dearchiver = Dearchiver("../test/")
+		readbuffer = ReadBuffer(archivefile)
+		while True:
+			ba = readbuffer.read()
+			if len(ba) == 0:
+				break
+			dearchiver.write(ba)
+		readbuffer.close()
+		self.assertTrue(os.path.isfile(archivefile))
+		filesize3 = os.stat(dstfile).st_size
+		self.assertTrue(filesize1 == filesize3)
+		fin1 = open(self.srcfile, "rb")
+		fin2 = open(dstfile, "rb")
+		ba1 = fin1.read(filesize1)
+		ba2 = fin2.read(filesize3)
+		for i in range(filesize1):
+			self.assertTrue(ba1[i] == ba2[i])
+		fin1.close()
+		fin2.close()
+		os.remove(dstfile)

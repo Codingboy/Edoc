@@ -1,4 +1,6 @@
 import os
+import unittest
+from random import randint
 
 
 class ReadBuffer:
@@ -61,6 +63,7 @@ class ReadBuffer:
 		|	self.fIn
 		"""
 		self.bufferPos = pos
+		self.pos = pos
 		self.fIn.seek(pos)
 		self.buffer = self.fIn.read(self.bufferSize)
 
@@ -100,8 +103,10 @@ class ReadBuffer:
 		if self.pos+size > self.bufferPos+self.bufferSize:
 			for i in range(self.bufferPos+self.bufferSize-self.pos):
 				ba.append(self.buffer[i+self.pos-self.bufferPos])
+				size -= 1
 			self.seek(self.bufferPos+self.bufferSize)  # TODO ensure buffer contains all data (size<=bufferSize)
 			for i in range(self.pos+size-self.bufferPos):
+				#print(self.pos+size-self.bufferPos)
 				ba.append(self.buffer[i])
 		else:
 			for i in range(size):
@@ -231,3 +236,51 @@ class WriteBuffer:
 		self.fOut.write(self.buffer)
 		self.buffer = bytearray()
 		self.fOut.seek(pos)  # TODO preconditions
+
+class FileBufferUnitTest(unittest.TestCase):
+	def setUp(self):
+		self.srcfile = "../test.txt"
+
+	def tearDown(self):
+		pass
+
+	def test_seek(self):
+		readbuffer = ReadBuffer(self.srcfile)
+		filesize = os.stat(self.srcfile).st_size
+		fin = open(self.srcfile, "rb")
+		ba = fin.read(filesize)
+		pos = randint(0, filesize-1)
+		length = randint(0, filesize-pos)
+		readbuffer.seek(pos)
+		for i in range(length):
+			self.assertTrue(ba[pos+i] == readbuffer.read(1)[0])
+		readbuffer.seek(0)
+		for i in range(filesize):
+			self.assertTrue(ba[i] == readbuffer.read(1)[0])
+		fin.close()
+		readbuffer.close()
+
+	def test_copy(self):
+		dstfile = "../test.copy.txt"
+		readbuffer = ReadBuffer(self.srcfile)
+		writebuffer = WriteBuffer(dstfile)
+		while True:
+			ba = readbuffer.read(1023)
+			if len(ba) == 0:
+				break
+			writebuffer.write(ba)
+		readbuffer.close()
+		writebuffer.close()
+		self.assertTrue(os.path.isfile(dstfile))
+		filesize1 = os.stat(self.srcfile).st_size
+		filesize2 = os.stat(dstfile).st_size
+		self.assertTrue(filesize1 == filesize2)
+		fin1 = open(self.srcfile, "rb")
+		fin2 = open(dstfile, "rb")
+		ba1 = fin1.read(filesize1)
+		ba2 = fin2.read(filesize2)
+		for i in range(filesize1):
+			self.assertTrue(ba1[i] == ba2[i])
+		fin1.close()
+		fin2.close()
+		os.remove(dstfile)
