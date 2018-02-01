@@ -1,9 +1,5 @@
 from random import randint
 from copy import deepcopy
-import os
-import shutil
-import time
-import math
 import unittest
 from typing import Dict, Tuple, List
 
@@ -12,6 +8,10 @@ class Encoder:
 		password = []
 		for c in pw:
 			password.append(ord(c))
+		index = 0
+		while len(password) < 4096:
+			password += ord(pw[index%len(pw)])
+			index += 1
 		self.spBox = SPBox(password)
 		self.buffer = None
 		self.seeded = False
@@ -43,6 +43,10 @@ class Decoder:
 		password = []
 		for c in pw:
 			password.append(ord(c))
+		index = 0
+		while len(password) < 4096:
+			password += ord(pw[index%len(pw)])
+			index += 1
 		self.spBox = SPBox(password, seed)
 		self.buffer = None
 		self.seeded = False
@@ -80,8 +84,6 @@ class SBox:
 
 	| **Pre:**
 	|	len(pw) == 256
-	|	pw[i] >= 0
-	|	pw[i] < 256
 
 	| **Post:**
 	|	len(self.encodeMap) == 256
@@ -92,7 +94,7 @@ class SBox:
 	|	self.decodeMap[i] < 256
 	"""
 
-	def __init__(self, pw: List[int]):
+	def __init__(self, pw: bytearray):
 		self.encodeMap: List[int] = [-1]*256
 		self.decodeMap: List[int] = [-1]*256
 		index = 0
@@ -162,8 +164,6 @@ class PBox:
 
 	| **Pre:**
 	|	len(pw) == 2048
-	|	pw[i] >= 0
-	|	pw[i] < 256
 
 	| **Post:**
 	|	len(self.encodeMap) == 2048
@@ -174,7 +174,7 @@ class PBox:
 	|	self.decodeMap[i] < 2048
 	"""
 
-	def __init__(self, pw: List[int]):
+	def __init__(self, pw: bytearray):
 		self.encodeMap: List[int] = [-1]*(256*8)
 		self.decodeMap: List[int] = [-1]*(256*8)
 		index = 0
@@ -191,7 +191,7 @@ class PBox:
 		for i in range(256*8):
 			self.decodeMap[self.encodeMap[i]] = i
 
-	def encode(self, plain: List[int], seed: int) -> List[int]:
+	def encode(self, plain: bytearray, seed: int) -> bytearray:
 		"""
 		Encodes a block of plain numbers.
 
@@ -204,8 +204,6 @@ class PBox:
 
 		| **Pre:**
 		|	len(plain) == 256
-		|	plain[i] >= 0
-		|	plain[i] < 256
 		|	seed >= 0
 		|	seed < 256
 
@@ -214,7 +212,7 @@ class PBox:
 		|	return[i] >= 0
 		|	return[i] < 256
 		"""
-		encoded = [0]*256
+		encoded = bytearray(256)
 		for i in range(256):
 			indexVar = i*8+seed
 			for b in range(8):
@@ -224,7 +222,7 @@ class PBox:
 					encoded[index8] = encoded[index8]+(1<<(index%8))
 		return encoded
 
-	def decode(self, encoded: List[int], seed: int) -> List[int]:
+	def decode(self, encoded: bytearray, seed: int) -> List[int]:
 		"""
 		Decodes a block of encoded numbers.
 
@@ -237,8 +235,6 @@ class PBox:
 
 		| **Pre:**
 		|	len(encoded) == 256
-		|	encoded[i] >= 0
-		|	encoded[i] < 256
 		|	seed >= 0
 		|	seed < 256
 
@@ -247,7 +243,7 @@ class PBox:
 		|	return[i] >= 0
 		|	return[i] < 256
 		"""
-		decoded = [0]*256
+		decoded = bytearray(256)
 		for i in range(256):
 			indexVar = i*8
 			for b in range(8):
@@ -274,37 +270,33 @@ class SPBox:
 
 	| **Pre:**
 	|	len(pw) == 4096
-	|	pw[i] >= 0
-	|	pw[i] < 256
 	|	len(seed) == 256
 	|	seed[i] >= 1
-	|	seed[i] < 256
 
 	| **Post:**
 	|	len(self.sBoxes) == 8
 	|	len(self.seed) == 256
 	|	self.seed[i] >= 1
-	|	self.seed[i] < 256
 	"""
 
-	def __init__(self, pw: List[int], seed: List[int] = None):
+	def __init__(self, pw: bytearray, seed: bytearray = None):
 		self.sBoxes: List[SBox] = [None]*8
 		if (seed is None):
-			seed = [0]*256
+			seed = bytearray(256)
 			for i in range(256):
 				seed[i] = randint(1, 255)
-		self.seed: List[int] = deepcopy(seed)
+		self.seed: bytearray = seed
 		for s in range(8):
-			spw = [0]*256
+			spw = bytearray(256)
 			for i in range(256):
 				spw[i] = pw[s*256+i]
 			self.sBoxes[s] = SBox(spw)
-		ppw = [0]*2048
+		ppw = bytearray(2048)
 		for i in range(2048):
 			ppw[i] = pw[8*256+i]
 		self.pBox: PBox = PBox(ppw)
 
-	def encodeRound(self, plain: List[int], round: int, pSeed: int) -> List[int]:
+	def encodeRound(self, plain: bytearray, round: int, pSeed: int) -> bytearray:
 		"""
 		Encodes a block of plain numbers.
 
@@ -318,8 +310,6 @@ class SPBox:
 
 		| **Pre:**
 		|	len(plain) == 256
-		|	plain[i] >= 0
-		|	plain[i] < 256
 		|	round >= 0
 		|	round < 8
 		|	pSeed >= 0
@@ -327,10 +317,8 @@ class SPBox:
 
 		| **Post:**
 		|	len(return) == 256
-		|	return[i] >= 0
-		|	return[i] < 256
 		"""
-		encoded = [0]*256
+		encoded = bytearray(256)
 		for i in range(256):
 			seedAtI = self.seed[i]
 			encoded[i] = plain[i] ^ self.sBoxes[round].encodeMap[i] ^ seedAtI
@@ -341,7 +329,7 @@ class SPBox:
 		encoded = self.pBox.encode(encoded, pSeed)
 		return encoded
 
-	def decodeRound(self, encoded: List[int], round: int, pSeed: int) -> List[int]:
+	def decodeRound(self, encoded: bytearray, round: int, pSeed: int) -> bytearray:
 		"""
 		Decodes a block of encoded numbers.
 
@@ -355,8 +343,6 @@ class SPBox:
 
 		| **Pre:**
 		|	len(encoded) == 256
-		|	encoded[i] >= 0
-		|	encoded[i] < 256
 		|	round >= 0
 		|	round < 8
 		|	pSeed >= 0
@@ -364,8 +350,6 @@ class SPBox:
 
 		| **Post:**
 		|	len(return) == 256
-		|	return[i] >= 0
-		|	return[i] < 256
 		"""
 		decoded = self.pBox.decode(encoded, pSeed)
 		for i in range(256):
@@ -378,7 +362,7 @@ class SPBox:
 			decoded[i] = decoded[i] ^ self.sBoxes[round].encodeMap[i] ^ seedAtI
 		return decoded
 
-	def encode(self, plain: List[int]) -> List[int]:
+	def encode(self, plain: bytearray) -> bytearray:
 		"""
 		Encodes a block of plain numbers.
 
@@ -390,13 +374,9 @@ class SPBox:
 
 		| **Pre:**
 		|	len(plain) == 256
-		|	plain[i] >= 0
-		|	plain[i] < 256
 
 		| **Post:**
 		|	len(return) == 256
-		|	return[i] >= 0
-		|	return[i] < 256
 
 		| **Modifies:**
 		|	self.seed[i]
@@ -413,7 +393,7 @@ class SPBox:
 				self.seed[i] = 1
 		return encoded
 
-	def decode(self, encoded: List[int]) -> List[int]:
+	def decode(self, encoded: bytearray) -> bytearray:
 		"""
 		Decodes a block of encoded numbers.
 
@@ -449,36 +429,32 @@ class SPBox:
 				self.seed[i] = 1
 		return decoded
 
-	def getSeed(self):
+	def getSeed(self) -> bytearray:
 		"""
 		Gets the seed.
 
 		Returns:
-			list: block of seed numbers
+			block of seed numbers
 
 		| **Post:**
 		|	len(return) == 256
-		|	isinstance(return[i], int)
 		|	return[i] >= 1
-		|	return[i] < 256
 		"""
-		seed = [0]*256
+		seed = bytearray(256)
 		for i in range(256):
 			seed[i] = self.seed[i]
 		return seed
 
-	def setSeed(self, seed):
+	def setSeed(self, seed: bytearray):
 		"""
 		Sets the seed.
 
 		Parameters:
-			seed (list): block of seed numbers
+			seed: block of seed numbers
 
 		| **Pre:**
 		|	len(seed) == 256
-		|	isinstance(seed[i], int)
 		|	seed[i] >= 1
-		|	seed[i] < 256
 
 		| **Modifies:**
 		|	self.seed[i]
@@ -491,7 +467,7 @@ class SPBox:
 
 class SBoxUnitTest(unittest.TestCase):
 	def setUp(self):
-		self.pw = []
+		self.pw = bytearray()
 		for i in range(256):
 			self.pw.append(randint(0, 255))
 		self.sBox = SBox(self.pw)
@@ -516,7 +492,7 @@ class SBoxUnitTest(unittest.TestCase):
 
 class PBoxUnitTest(unittest.TestCase):
 	def setUp(self):
-		self.pw = []
+		self.pw = bytearray()
 		for i in range(2048):
 			self.pw.append(randint(0, 255))
 		self.pBox = PBox(self.pw)
@@ -526,7 +502,7 @@ class PBoxUnitTest(unittest.TestCase):
 		self.pBox = None
 
 	def test_simple(self):
-		plain = []
+		plain = bytearray()
 		for i in range(256):
 			plain.append(randint(0, 255))
 		for seed in range(256):
@@ -544,7 +520,7 @@ class PBoxUnitTest(unittest.TestCase):
 
 class SPBoxUnitTest(unittest.TestCase):
 	def setUp(self):
-		self.pw = []
+		self.pw = bytearray()
 		for i in range(4096):
 			self.pw.append(randint(0, 255))
 		self.spBox = SPBox(self.pw)
@@ -554,8 +530,8 @@ class SPBoxUnitTest(unittest.TestCase):
 		self.spBox = None
 
 	def test_simple(self):
-		plain = []
-		for i in range(randint(1, 256)):
+		plain = bytearray()
+		for i in range(256):
 			plain.append(randint(0, 255))
 		length = len(plain)
 		seed = self.spBox.getSeed()
