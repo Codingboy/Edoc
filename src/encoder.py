@@ -1,22 +1,21 @@
 from random import randint
-from copy import deepcopy
 import unittest
 from typing import Dict, Tuple, List
 
 class Encoder:
 	def __init__(self, pw: str):
-		password = []
+		password = bytearray()
 		for c in pw:
 			password.append(ord(c))
 		index = 0
 		while len(password) < 4096:
-			password += ord(pw[index%len(pw)])
+			password.append(ord(pw[index%len(pw)]))
 			index += 1
 		self.spBox = SPBox(password)
 		self.buffer = None
 		self.seeded = False
 	def encode(self, plain: bytearray):
-		returnvalue = bytearray
+		returnvalue = bytearray()
 		if self.buffer is not None:
 			plain = self.buffer+plain
 			self.buffer = None
@@ -39,19 +38,19 @@ class Encoder:
 		return self.encode(bytearray())
 
 class Decoder:
-	def __init__(self, pw: str, seed: bytearray=None):
-		password = []
+	def __init__(self, pw: str):
+		password = bytearray()
 		for c in pw:
 			password.append(ord(c))
 		index = 0
 		while len(password) < 4096:
-			password += ord(pw[index%len(pw)])
+			password.append(ord(pw[index%len(pw)]))
 			index += 1
-		self.spBox = SPBox(password, seed)
+		self.spBox = SPBox(password)
 		self.buffer = None
 		self.seeded = False
 	def decode(self, encoded: bytearray):
-		returnvalue = bytearray
+		returnvalue = bytearray()
 		if self.buffer is not None:
 			encoded = self.buffer+encoded
 			self.buffer = None
@@ -69,7 +68,7 @@ class Decoder:
 			self.buffer = encoded
 		return returnvalue
 	def close(self):
-		pass
+		return bytearray()
 
 class SBox:
 	"""

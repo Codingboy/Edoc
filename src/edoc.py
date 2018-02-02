@@ -1,5 +1,4 @@
 import argparse
-import logging
 import sys
 import time
 import unittest
@@ -46,9 +45,6 @@ def getSize(folder):
 	return size
 
 if __name__ == "__main__":
-	PROJECTNAME = "edoc"
-	LOGNAME = PROJECTNAME+".log"
-	fileLogging = False
 	useCurses = True
 	profiling = False
 
@@ -58,19 +54,6 @@ if __name__ == "__main__":
 		import cProfile
 		import pstats
 		import io
-
-	logger = logging.getLogger(PROJECTNAME)
-	logger.setLevel(logging.DEBUG)
-	ch = logging.StreamHandler()
-	ch.setLevel(logging.DEBUG)
-	formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-	ch.setFormatter(formatter)
-	logger.addHandler(ch)
-	if fileLogging:
-		fh = logging.FileHandler(LOGNAME)
-		fh.setLevel(logging.DEBUG)
-		fh.setFormatter(formatter)
-		logger.addHandler(fh)
 
 	parser = argparse.ArgumentParser(description="Encodes or decodes a file or folder.")
 	parser.add_argument("-e", "--encode", action="store_true", help="Specify mode: encode")
@@ -152,6 +135,7 @@ if __name__ == "__main__":
 				data1 = decompressor.close()
 				dearchiver.write(data)
 				dearchiver.write(data1)
+				os.remove(file)
 			printProgress()
 			if profiling:
 				pr.disable()
@@ -159,4 +143,4 @@ if __name__ == "__main__":
 				sortby = "cumulative"
 				ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
 				ps.print_stats()
-				logger.info(s.getvalue())
+				getLog().info(s.getvalue())

@@ -4,6 +4,7 @@ from typing import List
 import unittest
 import shutil
 
+from log import getLog
 
 class Archiver:
 	"""
@@ -34,7 +35,7 @@ class Archiver:
 		self.readBuffer: ReadBuffer = None
 		self.files: List[str] = []
 		self.folder:str = ""
-		index = folder.rfind("/")
+		index = folder.rfind(os.sep)
 		if index != -1:
 			index += 1
 			self.folder = folder[:index]
@@ -46,7 +47,7 @@ class Archiver:
 		elif os.path.isdir(folder):
 			files = os.listdir(folder)
 			for file in files:
-				file = folder+"/"+file
+				file = folder+os.sep+file
 				file = file[len(self.folder):]
 				self.files.append(file)
 		self.file: str = ""
@@ -78,9 +79,10 @@ class Archiver:
 						folder = file
 						files = os.listdir(folder)
 						for file in files:
-							file = folder+"/"+file
+							file = folder+os.sep+file
 							self.files.append(file)
 					elif os.path.isfile(file):
+						getLog().info("archive "+file)
 						self.readBuffer = ReadBuffer(file)
 						self.file = file
 						file = file[len(self.folder):]
@@ -131,6 +133,9 @@ class Dearchiver:
 		self.filesize: int = 0
 		self.buffer: bytearray = None
 		self.folder: str = folder
+		index = folder.rfind(os.sep)
+		if index != -1:
+			self.folder = folder[:index]
 
 	def write(self, data: bytearray):
 		"""
@@ -161,7 +166,8 @@ class Dearchiver:
 					if datalength >= 2+length+8:
 						for i in range(8):
 							self.filesize += (data[2+length+i]) << (8*(8-1-i))
-						self.writeBuffer = WriteBuffer(self.folder+"/"+file)
+						getLog().info("dearchive "+self.folder+os.sep+file)
+						self.writeBuffer = WriteBuffer(self.folder+os.sep+file)
 						maxlength = min(datalength-(2+length+8), self.filesize)
 						ba = bytearray()
 						for i in range(maxlength):

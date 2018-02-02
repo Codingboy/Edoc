@@ -1,5 +1,6 @@
 SetCompressor /SOLID /FINAL lzma
 
+!include "nsDialogs.nsh"
 !include "FileFunc.nsh"
 !define StrRep "!insertmacro StrRep"
 !macro StrRep output string old new
@@ -88,6 +89,14 @@ InstallDirRegKey HKCU "Software\Edoc" ""
 !insertmacro MUI_PAGE_LICENSE "LICENSE.txt"
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
+!define MUI_PAGE_HEADER_SUBTEXT "Select python executable."
+!define MUI_DIRECTORYPAGE_TEXT_TOP "Select python executable. Python 3.5+ required."
+#!define MUI_DIRECTORYPAGE_VARIABLE ${Python}
+Var Python
+#PageEx directory
+#    DirVar $Python
+#PageExEnd
+#!insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 
 !insertmacro MUI_UNPAGE_COMPONENTS
@@ -96,7 +105,6 @@ InstallDirRegKey HKCU "Software\Edoc" ""
 
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "German"
-#!insertmacro MUI_LANGUAGE "French"
 !insertmacro MUI_RESERVEFILE_LANGDLL
 Function .onInit
 	!insertmacro MUI_LANGDLL_DISPLAY
@@ -106,24 +114,27 @@ Function un.onInit
 FunctionEnd
 
 Section "Edoc" Edoc
+    nsDialogs::SelectFileDialog open "" "python.exe|python.exe"
+    Pop $0
+	StrCpy "$Python" $0
 	SetAutoClose true
 	SetOutPath $INSTDIR
 	File /r img
-	File edoc.py
+	File /r src
 	File LICENSE.txt
 	File README.md
 	Var /GLOBAL pathToExe
-	StrCpy "$pathToExe" "$INSTDIR\edoc.py"
+	StrCpy "$pathToExe" "$INSTDIR\src\edoc.py"
 	${StrRep} $pathToExe "$pathToExe" "\" "\\"
-	#WriteRegStr HKCR "Directory\Background\shell\EncodeStr\command" "" "python $\"$pathToExe$\" -e"
+	#WriteRegStr HKCR "Directory\Background\shell\EncodeStr\command" "" "$Python $\"$pathToExe$\" -e"
 	#WriteRegExpandStr HKCR "Directory\Background\shell\EncodeStr" "Icon" "$INSTDIR\img\encode.ico"
-	#WriteRegStr HKCR "Directory\Background\shell\DecodeStr\command" "" "python $\"$pathToExe$\" -d"
+	#WriteRegStr HKCR "Directory\Background\shell\DecodeStr\command" "" "$Python $\"$pathToExe$\" -d"
 	#WriteRegExpandStr HKCR "Directory\Background\shell\DecodeStr" "Icon" "$INSTDIR\img\decode.ico"
-	WriteRegStr HKCR "*\shell\Encode\command" "" "python $\"$pathToExe$\" -e -f $\"%1$\""
+	WriteRegStr HKCR "*\shell\Encode\command" "" "$Python $\"$pathToExe$\" -e -f $\"%1$\""
 	WriteRegExpandStr HKCR "*\shell\Encode" "Icon" "$INSTDIR\img\encode.ico"
-	WriteRegStr HKCR "Directory\shell\Encode\command" "" "python $\"$pathToExe$\" -e -f $\"%1$\""
+	WriteRegStr HKCR "Directory\shell\Encode\command" "" "$Python $\"$pathToExe$\" -e -f $\"%1$\""
 	WriteRegExpandStr HKCR "Directory\shell\Encode" "Icon" "$INSTDIR\img\encode.ico"
-	WriteRegStr HKCR ".edoc\shell\Decode\command" "" "python $\"$pathToExe$\" -d -f $\"%1$\""
+	WriteRegStr HKCR ".edoc\shell\Decode\command" "" "$Python $\"$pathToExe$\" -d -f $\"%1$\""
 	WriteRegExpandStr HKCR ".edoc\shell\Decode" "Icon" "$INSTDIR\img\decode.ico"
 	WriteUninstaller "$INSTDIR\uninstall.exe"
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Edoc" "DisplayName" "Edoc"
@@ -131,7 +142,7 @@ Section "Edoc" Edoc
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Edoc" "QuietUninstallString" "$\"$INSTDIR\uninstall.exe$\" /S"
 	WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Edoc" "NoModify" 1
 	WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Edoc" "NoRepair" 1
-	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Edoc" "DisplayIcon" "$INSTDIR\edoc.py"
+	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Edoc" "DisplayIcon" "$INSTDIR\src\edoc.py"
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Edoc" "InstallLocation" "$INSTDIR"
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Edoc" "Publisher" "Daniel Tkocz"
 	WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Edoc" "Readme" "$INSTDIR\README.md"
@@ -145,12 +156,26 @@ Section /o "Development Files" DevFiles
 	SetAutoClose true
 	SetOutPath $INSTDIR
 	File edoc.nsi
-	#File Doxyfile
+	File /r doc_src
+	File make.bat
+	File Makefile
+	File .gitignore
+	File /r .idea
+	File install.bat
+	File test.txt
+SectionEnd
+
+Section /o "Documentation" Documentation
+	SetAutoClose true
+	SetOutPath $INSTDIR
+	File /r doc
 SectionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
 !insertmacro MUI_DESCRIPTION_TEXT ${Edoc} "This option will install the absolute minimum required files to use Edoc."
-!insertmacro MUI_DESCRIPTION_TEXT ${DevFiles} "This option will install all further files needed to develop and build. This option is intended for developers/programmer only."
+!insertmacro MUI_DESCRIPTION_TEXT ${Documentation} "This option will install the absolute minimum required files to use Edoc."
+!insertmacro MUI_DESCRIPTION_TEXT ${DevFiles} "This option will install all further files needed to develop and build. This option is intended for developers only."
+!insertmacro MUI_DESCRIPTION_TEXT ${Documentation} "This option will install the documentation. This option is intended for developers only."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 Section "un.Edoc"

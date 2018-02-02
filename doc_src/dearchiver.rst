@@ -2,7 +2,7 @@
 Dearchiver
 ==============
 
-.. automodule:: dearchiver
+.. automodule:: archiver
 
 .. autoclass:: Dearchiver
     :members:
